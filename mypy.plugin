@@ -1,0 +1,7 @@
+[Plugin]
+Module=mypy
+Loader=python3
+IAge=3
+Name=mypy
+Description=Checks python code with mypy
+Authors=Felix Kloft
