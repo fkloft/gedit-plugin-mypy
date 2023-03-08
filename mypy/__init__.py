@@ -98,9 +98,10 @@ class Message:
         text = GLib.markup_escape_text(self.message)
         
         return (
-            f'{self.line}<span foreground="#008899">:</span>{self.column}<span foreground="#008899">:</span> '
-            + f'<span foreground="{self.level.color}"><b>{self.level_text}</b></span> {text}'
-            + (f' [<span foreground="#916a42">{self.rule}</span>]' if self.rule else "")
+            f'{self.line}<span foreground="#008899">:</span>'
+            f'{self.column}<span foreground="#008899">:</span> '
+            f'<span foreground="{self.level.color}"><b>{self.level_text}:</b></span> {text}'
+            + (f' <span foreground="#916a42">[{self.rule}]</span>' if self.rule else "")
         )
 
 
