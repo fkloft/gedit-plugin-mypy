@@ -72,8 +72,8 @@ class Message:
         self.message = d["message"]
         self.rule = d["rule"]
         
-        iter_start = self.buffer.get_iter_at_line_offset(self.line - 1, self.column)
-        iter_end = self.buffer.get_iter_at_line_offset(self.end_line - 1, self.end_column)
+        iter_start = self.buffer.get_iter_at_line_offset(self.line - 1, self.column - 1)
+        iter_end = self.buffer.get_iter_at_line_offset(self.end_line - 1, self.end_column - 1)
         self.mark_start = self.buffer.create_mark(None, iter_start, False)
         self.mark_end = self.buffer.create_mark(None, iter_end, True)
         self.mark_start.set_visible(False)
