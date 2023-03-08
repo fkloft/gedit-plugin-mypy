@@ -95,7 +95,7 @@ class Message:
         ))
     
     def get_pango_markup(self):
-        text = GLib.markup_escape_text(self.message),
+        text = GLib.markup_escape_text(self.message)
         
         return (
             f'{self.line}<span foreground="#008899">:</span>{self.column}<span foreground="#008899">:</span> '
