@@ -6,6 +6,7 @@ import gi
 import re
 import subprocess
 import sys
+import warnings
 from typing import Optional
 
 from .gutterrenderer import GutterRenderer
@@ -19,10 +20,10 @@ from gi.repository import GObject, Gedit, GLib, GtkSource, Gtk, Pango, PeasGtk, 
 @enum.unique
 @functools.total_ordering
 class Level(enum.Enum):
-    NOTE = ("note", "#00007F")
-    WARN = ("warning", "#FFFF00")
-    ERROR = ("error", "#FF0000")
-    UNKNOWN = ("?", "#FF7F00")
+    NOTE = ("note", "#007FFF")
+    WARN = ("warning", "#f5c200")
+    ERROR = ("error", "#c01c28")
+    UNKNOWN = ("?", "#c64600")
     
     def __lt__(self, other):
         members = list(type(self).__members__.values())
@@ -66,12 +67,13 @@ class Message:
         self.column = int(d["column"])
         self.end_line = int(d["end_line"])
         self.end_column = int(d["end_column"])
-        self.level = Level.by_code(d["level"])
+        self.level_text = d["level"]
+        self.level = Level.by_code(self.level_text)
         self.message = d["message"]
         self.rule = d["rule"]
         
-        iter_start = self.buffer.get_iter_at_line_offset(self.line, self.column)
-        iter_end = self.buffer.get_iter_at_line_offset(self.end_line, self.end_column)
+        iter_start = self.buffer.get_iter_at_line_offset(self.line - 1, self.column)
+        iter_end = self.buffer.get_iter_at_line_offset(self.end_line - 1, self.end_column)
         self.mark_start = self.buffer.create_mark(None, iter_start, False)
         self.mark_end = self.buffer.create_mark(None, iter_end, True)
         self.mark_start.set_visible(False)
@@ -91,6 +93,15 @@ class Message:
             in self.__annotations__.keys()
             if attr not in ["path"]
         ))
+    
+    def get_pango_markup(self):
+        text = GLib.markup_escape_text(self.message),
+        
+        return (
+            f'{self.line}<span foreground="#008899">:</span>{self.column}<span foreground="#008899">:</span> '
+            + f'<span foreground="{self.level.color}"><b>{self.level_text}</b></span> {text}'
+            + (f' [<span foreground="#916a42">{self.rule}</span>]' if self.rule else "")
+        )
 
 
 class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
@@ -174,7 +185,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             return
         
         if not self.connected:
-            self.gutter.insert(self.gutter_renderer, 40)
+            self.gutter.insert(self.gutter_renderer, 50)
             self.buffer_signals.append(self.buffer.connect('saved', self.update))
             self.buffer_signals.append(self.buffer.connect('changed', self.update_gutter))
             self.connected = True
@@ -190,19 +201,23 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
         
         folder = self.location.get_parent().get_path()
         
-        proc = subprocess.Popen(
-            (
-                "mypy",
-                "--no-error-summary",
-                "--show-absolute-path",
-                "--show-column-numbers",
-                "--show-error-end",
-                self.location.get_path()
-            ),
-            cwd=folder,
-            stdout=subprocess.PIPE,
-            universal_newlines=True,
-        )
+        try:
+            proc = subprocess.Popen(
+                (
+                    "mypy",
+                    "--no-error-summary",
+                    "--show-absolute-path",
+                    "--show-column-numbers",
+                    "--show-error-end",
+                    self.location.get_path()
+                ),
+                cwd=folder,
+                stdout=subprocess.PIPE,
+                universal_newlines=True,
+            )
+        except FileNotFoundError:
+            warnings.warn("mypy could not be found in $PATH")
+            return
         
         data = ""
         
@@ -258,7 +273,6 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             if not self.location.equal(msg.get_file()):
                 continue
             context_data.append(msg)
-            print("parsed msg:", msg)
         
         self.context_data = context_data
         
