@@ -216,8 +216,8 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
                 stdout=subprocess.PIPE,
                 universal_newlines=True,
             )
-        except FileNotFoundError:
-            warnings.warn("mypy could not be found in $PATH")
+        except FileNotFoundError as e:
+            warnings.warn("mypy could not be found in $PATH: " + str(e))
             return
         
         data = ""
