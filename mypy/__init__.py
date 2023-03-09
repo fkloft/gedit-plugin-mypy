@@ -52,9 +52,9 @@ class Level(enum.Enum):
 class Message:
     path: str
     line: int
-    column: int
-    end_line: int
-    end_column: int
+    column: Optional[int]
+    end_line: Optional[int]
+    end_column: Optional[int]
     level: Level
     message: str
     rule: Optional[str]
@@ -64,18 +64,32 @@ class Message:
         
         d = match.groupdict()
         
+        def opt_int(val: Optional[str]) -> Optional[int]:
+            if val is None:
+                return None
+            return int(val)
+        
         self.path = d["path"]
         self.line = int(d["line"])
-        self.column = int(d["column"])
-        self.end_line = int(d["end_line"])
-        self.end_column = int(d["end_column"])
+        self.column = opt_int(d["column"])
+        self.end_line = opt_int(d["end_line"])
+        self.end_column = opt_int(d["end_column"])
         self.level_text = d["level"]
         self.level = Level.by_code(self.level_text)
         self.message = d["message"]
         self.rule = d["rule"]
         
-        iter_start = self.buffer.get_iter_at_line_offset(self.line - 1, self.column - 1)
-        iter_end = self.buffer.get_iter_at_line_offset(self.end_line - 1, self.end_column - 1)
+        iter_start = self.buffer.get_iter_at_line_offset(
+            self.line - 1,
+            0 if self.column is None else (self.column - 1),
+        )
+        if self.end_line is not None:
+            iter_end = self.buffer.get_iter_at_line_offset(
+                self.end_line - 1,
+                0 if self.end_column is None else (self.end_column - 1),
+            )
+        else:
+            iter_end = iter_start
         self.mark_start = self.buffer.create_mark(None, iter_start, False)
         self.mark_end = self.buffer.create_mark(None, iter_end, True)
         self.mark_start.set_visible(False)
@@ -101,8 +115,8 @@ class Message:
         
         return (
             f'{self.line}<span foreground="#008899">:</span>'
-            f'{self.column}<span foreground="#008899">:</span> '
-            f'<span foreground="{self.level.color}"><b>{self.level_text}:</b></span> {text}'
+            + ("" if self.column is None else f'{self.column}<span foreground="#008899">:</span>')
+            + f' <span foreground="{self.level.color}"><b>{self.level_text}:</b></span> {text}'
             + (f' <span foreground="#916a42">[{self.rule}]</span>' if self.rule else "")
         )
 
@@ -288,9 +302,9 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
                     ^
                     (?P<path>.+):
                     (?P<line>\d+):
-                    (?P<column>\d+):
-                    (?P<end_line>\d+):
-                    (?P<end_column>\d+):
+                    (?:(?P<column>\d+):)?
+                    (?:(?P<end_line>\d+):)?
+                    (?:(?P<end_column>\d+):)?
                     \s+(?P<level>[a-z]+):
                     \s+(?P<message>.*?)
                     (?:\s+\[(?P<rule>[a-z]+)\])?
@@ -300,7 +314,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
                 flags=re.I | re.VERBOSE,
             )
             if not match:
-                print("Unknown line:", repr(line), file=sys.stderr)
+                print("Unknown line from mypy:", repr(line), file=sys.stderr)
                 continue
             
             msg = Message(self, match)
