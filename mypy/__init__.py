@@ -300,7 +300,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             match = re.match(
                 r"""
                     ^
-                    (?P<path>.+):
+                    (?P<path>.+?):
                     (?P<line>\d+):
                     (?:(?P<column>\d+):)?
                     (?:(?P<end_line>\d+):)?
