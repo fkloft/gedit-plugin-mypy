@@ -4,6 +4,7 @@ import enum
 import functools
 import gi
 import re
+import pathlib
 import subprocess
 import sys
 import warnings
@@ -17,6 +18,9 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import GObject, Gedit, GLib, GtkSource, Gtk, Pango, PeasGtk, Gio  # noqa
 
 PROJECT_FILES = (".mypy.ini", "pyproject.toml", "setup.cfg")
+CACHE_DIR = pathlib.Path.home() / ".mypy_cache"
+CACHE_DIR.mkdir(exist_ok=True)
+CACHE_DIR = CACHE_DIR.resolve()
 
 
 @enum.unique
@@ -258,6 +262,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             proc = subprocess.Popen(
                 (
                     "mypy",
+                    "--cache-dir", str(CACHE_DIR),
                     "--no-error-summary",
                     "--show-absolute-path",
                     "--show-column-numbers",
