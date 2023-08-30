@@ -131,6 +131,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
         self.parse_signal = 0
         self.connected = False
         self.location = None
+        self.project_folder = None
     
     def do_activate(self):
         self.gutter_renderer = GutterRenderer(self)
@@ -182,12 +183,13 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             self.buffer.connect('loaded', self.update_location),
             self.buffer.connect('notify::language', self.update_location),
         ]
+        self.update_location()
     
     def should_check(self):
         if self.location is None:
             return False
         
-        if self.buffer.get_language().get_id().startswith("python"):
+        if self.buffer.get_language() and self.buffer.get_language().get_id().startswith("python"):
             return True
         
         return False
@@ -248,6 +250,9 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
         
         if not self.buffer:
             self.context_data = []
+        
+        if not self.project_folder:
+            return
         
         try:
             proc = subprocess.Popen(
