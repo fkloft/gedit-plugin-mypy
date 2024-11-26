@@ -208,8 +208,7 @@ class MyPyViewActivatable(GObject.Object, Gedit.ViewActivatable):
             return
         
         try:
-            if (not old_location) or not self.location.equal(old_location):
-                self.project_folder = self.find_project_folder()
+            self.project_folder = self.find_project_folder()
         except FileNotFoundError:
             self.disconnect_gutter()
         else:
